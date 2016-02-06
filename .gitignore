@@ -67,3 +67,12 @@ Thumbs.db
 bower_components
 node_modules
 _bower.js
+
+# Virtualenv #
+######################
+.Python
+bin/
+lib/
+include/
+share/
+pip-selfcheck.json
