@@ -48,5 +48,6 @@ setup(
             "console_scripts": [
                 "sickrage=sickrage:main",
             ]
-        }, requires=['configobj']
+        },
+        install_requires=['urllib3', 'configobj']
 )

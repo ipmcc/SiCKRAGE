@@ -23,30 +23,38 @@ import os
 import sys
 
 import urllib3.contrib
+from distutils.version import LooseVersion
 
+
+PIP_BOOTSTRAP_URL = "https://bootstrap.pypa.io/get-pip.py"
+PIP_MIN_VERSION = "7.1.2"
 
 def install_pip(path, user=False):
+    try:
+        import pip
+        pip_version = LooseVersion(pip.__version__)
+    except ImportError:
+        pip = None
+        pip_version = LooseVersion("0.0.0")
+
+    if pip_version >= LooseVersion(PIP_MIN_VERSION):
+        return
+
+    file_name = os.path.join(path, PIP_BOOTSTRAP_URL.split('/')[-1])
     print("Downloading pip ...")
-    import urllib2
+    try:
+        import urllib
+        urllib.urlretrieve(PIP_BOOTSTRAP_URL, file_name)
 
-    url = "https://bootstrap.pypa.io/get-pip.py"
-    file_name = os.path.join(path, url.split('/')[-1])
-    u = urllib2.urlopen(url)
-    with open(file_name, 'wb') as f:
-        meta = u.info()
-        block_sz = 8192
-        while True:
-            buf = u.read(block_sz)
-            if not buf:
-                break
-            f.write(buf)
-
-    print("Installing pip ...")
-    import subprocess
-    subprocess.call([sys.executable, file_name] + ([], ['--user'])[user])
-
-    print("Cleaning up downloaded pip files")
-    os.remove(file_name)
+        print("Installing pip ...")
+        import subprocess
+        subprocess.check_call([sys.executable, file_name] + (["--user"] if user else []))
+    finally:
+        print("Cleaning up downloaded pip files")
+        try:
+            os.remove(file_name)
+        except:
+            pass
 
 
 def install_packages(path, constraints, user=False):
@@ -80,7 +88,8 @@ def install_packages(path, constraints, user=False):
             try:
                 options.ignore_dependencies = True
                 pip_install_cmd.run(options, [pkg_name])
-            except:continue
+            except:
+                continue
         except IndexError:
             continue
 
@@ -111,6 +120,11 @@ def upgrade_packages(constraints, user=False):
                         if getattr(p, 'version', 0) != getattr(y, 'public', 0)]
         except:
             packages = []
+
+        # Never upgrade yourself. It doesn't end well. (Any sources already loaded are the old version, anything
+        # loaded after this is the new version, it's a mess. It also borks development installs.)
+        if "sickrage" in packages:
+            packages.remove("sickrage")
 
         options = pip_install_cmd.parse_args([])[0]
         options.use_user_site = user

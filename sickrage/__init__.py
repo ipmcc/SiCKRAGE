@@ -39,6 +39,10 @@ srConfig = None
 
 
 def root_check():
+    # Check for virtualenv - --user installs don't work in them.
+    if hasattr(sys, 'real_prefix'):
+        return False
+
     try:
         return not os.getuid() == 0
     except AttributeError:
